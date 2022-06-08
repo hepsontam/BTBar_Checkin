@@ -6,10 +6,18 @@ from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning as w
 disable_warnings(w)                    ## 屏蔽无SSL验证的警告
 
-############### 手动输入以下内容 ##################
+################ 手动输入以下内容 ##################
 USER = ''        ## 用户名 (手机号/邮箱)
 PASSWORD = ''    ## 密码
 #################################################
+
+HEADERS = {
+	"Accept": "*/*",
+	"Connection": "keep-alive",
+	"Accept-Encoding": "gzip, deflate, br",
+	"Accept-Language": "zh-CN,zh-Hans;q=0.9",
+	"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15"  ## macOS Safari，较Chrome所需头部信息少
+}
 
 def btbar_login(BTBASESSID): 
 ## 实际上可用旧cookie登录，但有效期太短（少于半天？），目前一律重新登录（传参'now'）
@@ -17,15 +25,11 @@ def btbar_login(BTBASESSID):
 	headers = {
 		"Content-Type": "application/x-www-form-urlencoded",
 		"Origin": "https://u.aibtba.com",
-		"Accept-Encoding": "gzip, deflate, br",
-		"Connection": "keep-alive",
-		"Accept": "*/*",
-		"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15",
 		"Referer": "https://u.aibtba.com/user/login",
-		"Content-Length": "58",
-		"Accept-Language": "zh-CN,zh-Hans;q=0.9"
+		"Content-Length": "58"
 	}
-
+	headers.update(HEADERS)
+	
 	if BTBASESSID != 'now':
 		time_stamp = str(int(time()))
 		cookieText = 'BTBASESSID=' + BTBASESSID + '; Hm_lpvt_19a24d91cbe5649b8e7449e1b7c1a97e=' + time_stamp + '; Hm_lvt_19a24d91cbe5649b8e7449e1b7c1a97e=' + time_stamp
@@ -48,14 +52,10 @@ def btbar_checkin(cookie, coin):
 	cookieText = cookie + 'Hm_lpvt_19a24d91cbe5649b8e7449e1b7c1a97e=' + time_stamp + '; Hm_lvt_19a24d91cbe5649b8e7449e1b7c1a97e='+ time_stamp + '; search_referer=https%253A%252F%252Fu.aibtba.com%252F'
 	## Hm_lpvt.. 当前时间戳; Hm_lvt.. 猜测是曾经登录时间（可多个，形如1654364167,1654364158）
 	headers_0 = {
-		"Accept": "*/*",
-		"Connection": "keep-alive",
 		"Referer": "https://www.aibtba.com/",
-		"Accept-Encoding": "gzip, deflate, br",
-		"Accept-Language": "zh-CN,zh-Hans;q=0.9",
-		"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15",
 		"Cookie": cookieText
 	}
+	headers_0.update(HEADERS)
 	response_0 = get(url=url_0, headers=headers_0, verify=False)  ## 点击签到
 	addCoin = le(response_0._content.decode('unicode_escape').replace('Json(', '').replace(')', ''))[1].replace('获得','').replace('BT币', '')
 	## 签到获取的BT币（当日首次签到可截取）：首先将返回信息从bytes形式解码为汉字，再列表化（literal_eval），列表的第二项为获取BT币的信息，最后去除无关文字，取其中数字
@@ -73,10 +73,10 @@ def check_status(code):
 
 ## 从返回的类成员 cookies 中获取 BTBASESSID、bt_gold、bt_nickname、bt_user_id
 loginAction = btbar_login('now')
-loginResult = { 'status': loginAction.status_code, 'cookies': loginAction.cookies }
-cookiesList = str(loginResult['cookies']).split()
 
 try:
+	loginResult = { 'status': loginAction.status_code, 'cookies': loginAction.cookies }
+	cookiesList = str(loginResult['cookies']).split()
 	cookies = ''
 	for e in cookiesList:
 		if '=' in e:
