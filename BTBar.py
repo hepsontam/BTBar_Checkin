@@ -11,7 +11,8 @@ USER = ''        ## 用户名 (手机号/邮箱)
 PASSWORD = ''    ## 密码
 #################################################
 
-def btbar_login(BTBASESSID): ## 实际上可用旧cookie登录，但有效期太短（少于半天？），因此将一律重新登录（传参'now'）
+def btbar_login(BTBASESSID): 
+## 实际上可用旧cookie登录，但有效期太短（少于半天？），目前一律重新登录（传参'now'）
 	url = 'https://u.aibtba.com/user/login'
 	headers = {
 		"Content-Type": "application/x-www-form-urlencoded",
@@ -29,14 +30,14 @@ def btbar_login(BTBASESSID): ## 实际上可用旧cookie登录，但有效期太
 		time_stamp = str(int(time()))
 		cookieText = 'BTBASESSID=' + BTBASESSID + '; Hm_lpvt_19a24d91cbe5649b8e7449e1b7c1a97e=' + time_stamp + '; Hm_lvt_19a24d91cbe5649b8e7449e1b7c1a97e=' + time_stamp
 		headers['Cookie'] = cookieText
-	if USER:
-		data = {
-			'mobile_email': USER,
-			'bt_password': PASSWORD,
-			'submit': '1'
-		}
-	else:
-		quit()
+		
+	if not USER: quit()
+		
+	data = {
+		'mobile_email': USER,
+		'bt_password': PASSWORD,
+		'submit': '1'
+	}
 	response = post(url=url, headers=headers, data=data, verify=False)
 	return response
 
@@ -58,8 +59,7 @@ def btbar_checkin(cookie, coin):
 	response_0 = get(url=url_0, headers=headers_0, verify=False)  ## 点击签到
 	addCoin = le(response_0._content.decode('unicode_escape').replace('Json(', '').replace(')', ''))[1].replace('获得','').replace('BT币', '')
 	## 签到获取的BT币（当日首次签到可截取）：首先将返回信息从bytes形式解码为汉字，再列表化，列表的第二项为获取BT币的信息，最后去除无关文字后，并整形化
-	if addCoin == '已签到':  ## 重复登录
-		addCoin = 0
+	if addCoin == '已签到': addCoin = 0  ## 重复登录
 	coin += int(addCoin)
 	headers = headers_0
 	headers['Cookie'] = cookieText + '; bt_gold=' + str(coin) + '; bt_sign=%25E5%25B7%25B2%25E7%25AD%25BE%25E5%2588%25B0' ## bt_sign二次URL解码 -> 已签到
@@ -68,8 +68,7 @@ def btbar_checkin(cookie, coin):
 
 def check_status(code):
 	status = 'Error'
-	if code == 200:
-		status = 'OK'
+	if code == 200: status = 'OK'
 	return status
 
 ## 从返回的类成员 cookies 中获取 BTBASESSID、bt_gold、bt_nickname、bt_user_id
@@ -89,8 +88,7 @@ except Exception as ex:
 	print(ex)
 	quit()
 
-if not cookies:
-	quit()
+if not cookies: quit()
 
 checkinAction = btbar_checkin(cookies, coin)
 # checkinResult = checkinAction.__dict__  ## 类成员遍历
