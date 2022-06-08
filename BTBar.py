@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 from requests import post, get
 from time import time
-from ast import literal_eval as le  ## String转化为List或Dictionary
+from ast import literal_eval as le     ## String转化为List或Dictionary
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning as w
-disable_warnings(w) ## 屏蔽无SSL验证的警告
+disable_warnings(w)                    ## 屏蔽无SSL验证的警告
 
 ############### 手动输入以下内容 ##################
 USER = ''        ## 用户名 (手机号/邮箱)
@@ -59,7 +59,7 @@ def btbar_checkin(cookie, coin):
 	response_0 = get(url=url_0, headers=headers_0, verify=False)  ## 点击签到
 	addCoin = le(response_0._content.decode('unicode_escape').replace('Json(', '').replace(')', ''))[1].replace('获得','').replace('BT币', '')
 	## 签到获取的BT币（当日首次签到可截取）：首先将返回信息从bytes形式解码为汉字，再列表化（literal_eval），列表的第二项为获取BT币的信息，最后去除无关文字，取其中数字
-	if addCoin == '已签到': addCoin = 0  ## 重复登录
+	if addCoin == '已签到': addCoin = 0  ## 重复签到，无数字信息
 	coin += int(addCoin)
 	headers = headers_0
 	headers['Cookie'] = cookieText + '; bt_gold=' + str(coin) + '; bt_sign=%25E5%25B7%25B2%25E7%25AD%25BE%25E5%2588%25B0' ## bt_sign二次URL解码 -> 已签到
