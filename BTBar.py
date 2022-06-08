@@ -58,7 +58,7 @@ def btbar_checkin(cookie, coin):
 	}
 	response_0 = get(url=url_0, headers=headers_0, verify=False)  ## 点击签到
 	addCoin = le(response_0._content.decode('unicode_escape').replace('Json(', '').replace(')', ''))[1].replace('获得','').replace('BT币', '')
-	## 签到获取的BT币（当日首次签到可截取）：首先将返回信息从bytes形式解码为汉字，再列表化，列表的第二项为获取BT币的信息，最后去除无关文字后，并整形化
+	## 签到获取的BT币（当日首次签到可截取）：首先将返回信息从bytes形式解码为汉字，再列表化（literal_eval），列表的第二项为获取BT币的信息，最后去除无关文字，取其中数字
 	if addCoin == '已签到': addCoin = 0  ## 重复登录
 	coin += int(addCoin)
 	headers = headers_0
