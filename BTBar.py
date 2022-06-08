@@ -6,7 +6,7 @@ from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning as w
 disable_warnings(w) ## 屏蔽无SSL验证的警告
 
-############### 手动输入一下内容 ##################
+############### 手动输入以下内容 ##################
 USER = ''        ## 用户名 (手机号/邮箱)
 PASSWORD = ''    ## 密码
 #################################################
