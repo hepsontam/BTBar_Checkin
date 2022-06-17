@@ -1,4 +1,4 @@
-################### 手动输入以下内容 #####################
+################ 手动输入以下内容 ##################
 ## 用户名 (手机号/邮箱)
 USER = ''
 
@@ -6,10 +6,10 @@ USER = ''
 PASSWORD = ''
 
 ## 曾经登录的时间戳（若连续登录则取第一天）；
-## 默认 - 无内容则提交当前登录时间点；
+## 无内容则提交当前登录时间；
 ## 可自定义（在输出结果中提取，或自行抓取“Hm_lvt”字样的cookie）
 PastLoginTime = ''
-#######################################################
+#################################################
 
 from requests import post, get
 from time import time
@@ -61,7 +61,7 @@ def btbar_checkin(cookie, coin):
 	url_0 = 'https://u.aibtba.com/sign?search_referer=https%3A%2F%2Fu.aibtba.com%2F&callback=Json'
 	url = 'https://u.aibtba.com/sign/select?callback=Json'
 	time_stamp, pastTime = get_time_stamp()
-	cookieText = f'{cookie}Hm_lpvt_19a24d91cbe5649b8e7449e1b7c1a97e={time_stamp}; Hm_lvt_19a24d91cbe5649b8e7449e1b7c1a97e={pastTime}; {SEARCH_REFERER}'
+	cookieText = f'Hm_lpvt_19a24d91cbe5649b8e7449e1b7c1a97e={time_stamp}; Hm_lvt_19a24d91cbe5649b8e7449e1b7c1a97e={pastTime}; {cookie}{SEARCH_REFERER}'
 	## Hm_lpvt.. 当前时间戳; Hm_lvt.. 猜测是曾经登录时间（可多个，形如1654364167,1654364158）
 	headers_0 = {
 		"Referer": "https://www.aibtba.com/",
@@ -70,33 +70,28 @@ def btbar_checkin(cookie, coin):
 	headers_0.update(HEADERS)
 	response_0 = get(url=url_0, headers=headers_0, verify=False)  ## 点击签到
 
-	addCoin = sub(r'获得|BT币', '', le(sub(r'Json\(|\)', '', response_0._content.decode('unicode_escape')))[1])
-	## 签到获取的BT币（当日首次签到可截取）：首先将返回信息从bytes形式解码为汉字，替换无关字符后列表化（literal_eval），列表的第二项为获取BT币的信息，最后去除无关文字，取其中数字
-
-	repeat = 0
-	if addCoin == '已签到': 
-		addCoin = 0        ## 重复签到，无数字信息
-		repeat = 1
-	coin += int(addCoin)
+	addCoin = le(sub(r'Json\(|\)', '', response_0._content.decode('unicode_escape')))[2]
+	## 签到获取的BT币（当日首次签到可截取）：首先将返回信息从bytes形式解码为汉字，替换无关字符后列表化（literal_eval），列表的第三项为获取的BT币数
+	coin += addCoin
 
 	headers = headers_0
-	headers['Cookie'] = f'{cookieText}; bt_gold={str(coin)}; {BT_SIGN}'
+	headers['Cookie'] = sub(r'bt_gold=\d{1,4}', f'bt_gold={coin}', cookieText) + f'; {BT_SIGN}'
 	response = get(url=url, headers=headers, verify=False)  ## 获取签到信息
-	return response, repeat, coin
+	return response, addCoin, coin   ## addCoin作为是否 重复签到 的判定（获得0BT币）
 
-def refresh(cookieText, nowCoin):
-	url = 'https://www.aibtba.com'
-	headers = HEADERS
-	headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-	time_stamp, pastTime = get_time_stamp()
-	cookieText = sub(r'bt_gold=\d{1,4}', 'bt_gold=' + str(nowCoin), cookieText)
-	headers['Cookie'] = f'{cookieText}; {BT_SIGN}; {SEARCH_REFERER}'
-	response = get(url=url, headers=headers, verify=False)
-	try: 
-		if response.status_code != 200:
-			print('\n', '刷新出错了（不影响币值）。')
-	except Exception as ex:
-		print(ex)
+#def refresh(cookieText, nowCoin):
+#	url = 'https://www.aibtba.com'
+#	headers = HEADERS
+#	headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+#	time_stamp, pastTime = get_time_stamp()
+#	cookieText = sub(r'bt_gold=\d{1,4}', 'bt_gold=' + str(nowCoin), cookieText)
+#	headers['Cookie'] = f'Hm_lpvt_19a24d91cbe5649b8e7449e1b7c1a97e={time_stamp}; Hm_lvt_19a24d91cbe5649b8e7449e1b7c1a97e={pastTime}; {cookieText}; {BT_SIGN}; {SEARCH_REFERER}'
+#	response = get(url=url, headers=headers, verify=False)
+#	try: 
+#		if response.status_code != 200:
+#			print('\n', '刷新出错了（不影响币值）。')
+#	except Exception as ex:
+#		print(ex)
 
 def get_time_stamp():
 	time_stamp = str(int(time()))
@@ -138,7 +133,7 @@ try:
 	checkinResult = { 'status': checkinAction.status_code, 'result': le(sub(r'Json\(|\)', '', checkinAction._content.decode('unicode_escape'))) }
 	keepCheckin = checkinResult['result']['count']
 	print('签到结果：', check_status(checkinResult['status']) + '，已连续签到'+ str(keepCheckin) + '天，', end='')
-	if checkinJudge: 
+	if not checkinJudge: 
 		print('请勿重复签到，', end='')
 	if keepCheckin >= 7:               ## 今日获得的BT币 -> 连续签到少于7天，获得数=连续签到数；连续签到多于7天，获得数=7
 		keepCheckin = 7
@@ -149,9 +144,10 @@ except Exception as ex:
 for key, value in checkinResult['result']['date'].items():
 	if value == '':
 		if key == '今天':
-			print('今日获得' + str(keepCheckin) + 'BT币', '\n\n预计可得BT币：')
+			print(f'今日获得{keepCheckin}BT币，目前一共{coin}BT币', '\n\n预计可得BT币：')
 		continue
 	else:
 		print('  ' + key.replace('.', '月') + '日 -', value)
 
-refresh(cookies, coin)    ## 刷新
+# refresh(cookies, coin)    ## 刷新
+
